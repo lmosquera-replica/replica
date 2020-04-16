@@ -18,48 +18,6 @@ import time
 import torch.nn.functional as F
 
 
-# Parse command line arguments
-argparser = argparse.ArgumentParser()
-argparser.add_argument('--filename', type=str, default='')
-argparser.add_argument('--model', type=str, default='vanilla_tanh')
-argparser.add_argument('--n_epochs', type=int, default=300)
-argparser.add_argument('--K1', type=int, default=100)
-argparser.add_argument('--K2', type=int, default=100)
-
-argparser.add_argument('--num_layers', type=int, default=1)
-argparser.add_argument('--cuda', type=int, default=1)
-argparser.add_argument('--seed', type=int, default=1)
-argparser.add_argument('--chunk_len', type=int, default=100)
-argparser.add_argument('--batch_size', type=int, default=100)
-argparser.add_argument('--dropout', type=float, default=0.1)
-
-
-arguments = argparser.parse_args()
-
-arguments.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
-np.random.seed(arguments.seed)
-torch.manual_seed(arguments.seed)
-if arguments.cuda:
-    torch.cuda.manual_seed(arguments.seed)
-
-
-def partition_text_file(file, chunk_len, pct_train):
-    chunks = []
-    tmp = ''
-    for idx, c in enumerate(file):
-        tmp += c
-        if idx % chunk_len == 0:
-            chunks.append(tmp)
-            tmp = ''
-    np.random.shuffle(chunks)
-    train_chunks = chunks[0 : int(pct_train * len(chunks))]
-    test_chunks = chunks[int(pct_train * len(chunks)) :]
-    train_file = ''.join(train_chunks)
-    test_file = ''.join(test_chunks)
-    return train_file, test_file
-
 
 class CharRNN(nn.Module):
     def __init__(self, L, K1, K2, n_layers, dropout):
@@ -187,16 +145,6 @@ def save():
     torch.save(decoder, save_filename)
     print('Saved as %s' % save_filename)
 
-"""
-# if you want to use a new file 
-
-file, file_len = read_file(arguments.filename)
-train_file, test_file = partition_text_file(file, arguments.chunk_len, 0.75)
-train_file, vld_file = partition_text_file(train_file, arguments.chunk_len, 0.75)
-pickle.dump(train_file, open('train_set.pk', 'wb'))
-pickle.dump(vld_file, open('vld_set.pk', 'wb'))
-pickle.dump(test_file, open('test_set.pk', 'wb'))
-"""
 
 
 def read_file(filename):
@@ -223,7 +171,48 @@ def time_since(since):
     return '%dm %ds' % (m, s)
 
 
+
+
+"""
+# if you want to use a new file 
+
+file, file_len = read_file(arguments.filename)
+train_file, test_file = partition_text_file(file, arguments.chunk_len, 0.75)
+train_file, vld_file = partition_text_file(train_file, arguments.chunk_len, 0.75)
+pickle.dump(train_file, open('train_set.pk', 'wb'))
+pickle.dump(vld_file, open('vld_set.pk', 'wb'))
+pickle.dump(test_file, open('test_set.pk', 'wb'))
+"""
+
+
+
 if __name__ == '__main__':
+    # Parse command line arguments
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('--filename', type=str, default='')
+    argparser.add_argument('--model', type=str, default='vanilla_tanh')
+    argparser.add_argument('--n_epochs', type=int, default=300)
+    argparser.add_argument('--K1', type=int, default=100)
+    argparser.add_argument('--K2', type=int, default=100)
+
+    argparser.add_argument('--num_layers', type=int, default=1)
+    argparser.add_argument('--cuda', type=int, default=1)
+    argparser.add_argument('--seed', type=int, default=1)
+    argparser.add_argument('--chunk_len', type=int, default=100)
+    argparser.add_argument('--batch_size', type=int, default=100)
+    argparser.add_argument('--dropout', type=float, default=0.1)
+
+
+    arguments = argparser.parse_args()
+
+    arguments.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
+    np.random.seed(arguments.seed)
+    torch.manual_seed(arguments.seed)
+    if arguments.cuda:
+        torch.cuda.manual_seed(arguments.seed)
+
 
     timestamp = time.time()
 
