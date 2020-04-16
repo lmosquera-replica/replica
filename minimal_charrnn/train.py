@@ -23,14 +23,16 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('--filename', type=str, default='')
 argparser.add_argument('--model', type=str, default='vanilla_tanh')
 argparser.add_argument('--n_epochs', type=int, default=300)
-argparser.add_argument('--K1', type=int, default=200)
-argparser.add_argument('--K2', type=int, default=200)
+argparser.add_argument('--K1', type=int, default=100)
+argparser.add_argument('--K2', type=int, default=100)
 
 argparser.add_argument('--num_layers', type=int, default=1)
 argparser.add_argument('--cuda', type=int, default=1)
 argparser.add_argument('--seed', type=int, default=1)
 argparser.add_argument('--chunk_len', type=int, default=100)
 argparser.add_argument('--batch_size', type=int, default=100)
+argparser.add_argument('--dropout', type=float, default=0.1)
+
 
 arguments = argparser.parse_args()
 
@@ -60,14 +62,14 @@ def partition_text_file(file, chunk_len, pct_train):
 
 
 class CharRNN(nn.Module):
-    def __init__(self, L, K1, K2, n_layers):
+    def __init__(self, L, K1, K2, n_layers, dropout):
         super(CharRNN, self).__init__()
         self.L = L
         self.K1 = K1
         self.K2 = K2
         self.n_layers = n_layers
         self.embedder = nn.Embedding(L, K1)
-        self.rnn = nn.LSTM(K1, K2, n_layers, batch_first=True, dropout=0.0)
+        self.rnn = nn.LSTM(K1, K2, n_layers, batch_first=True, dropout=dropout)
         self.out = nn.Linear(K2, L)
 
 
@@ -130,11 +132,10 @@ class CharRNN(nn.Module):
         for l in range(N):
             inp = inp.unsqueeze(0)
             if l == 0:
-                out, h = self.forward(inp)
+                out, h = self.forward(inp, gen_mode=True)
             else:
-                out, h = self.forward(inp, h)
+                out, h = self.forward(inp, h, gen_mode=True)
             
-            pdb.set_trace()
             probs = F.softmax(out.squeeze(), dim=-1)
             all_probs.append(probs.data.unsqueeze(0))
 
@@ -234,11 +235,12 @@ if __name__ == '__main__':
 
     train_loader = get_loader(train_file, arguments.chunk_len, arguments.batch_size)
 
-    RNN = CharRNN(L=n_characters, K1=arguments.K1, K2=arguments.K2, n_layers=arguments.num_layers)
+    RNN = CharRNN(L=n_characters, K1=arguments.K1, K2=arguments.K2, n_layers=arguments.num_layers,
+                  dropout=arguments.dropout)
     RNN = RNN.to(arguments.device)
-    RNN.trainer(arguments, train_loader, EP=300)
+    RNN.trainer(arguments, train_loader, EP=100)
 
-    gen_data, _ = RNN.generate_data(N=300, L=n_characters, arguments=arguments)
+    gen_data, _ = RNN.generate_data(N=600, L=n_characters, arguments=arguments)
     gen_chars = ''.join([all_characters[ind] for ind in gen_data])
     print(gen_chars)
 
