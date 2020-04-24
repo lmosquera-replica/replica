@@ -265,7 +265,7 @@ if __name__ == '__main__':
     RNN = RNN.to(arguments.device)
 
     # train the model 
-    RNN.trainer(arguments, train_loader, EP=100)
+    RNN.trainer(arguments, train_loader, EP=arguments.n_epochs)
 
     # generate the data 
     gen_data, _ = RNN.generate_data(N=600, L=n_characters, arguments=arguments)
